@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Viber График - Final</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 900px; margin: 20px auto; background: #f4f6f8; padding: 20px; color: #333; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #665cac; padding-bottom: 10px; margin-bottom: 20px; }
+        h1 { margin: 0; font-size: 24px; }
+        .settings-btn { background: none; border: none; font-size: 24px; cursor: pointer; padding: 5px; border-radius: 50%; transition: all 0.3s; }
+        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(255, 0, 0, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); } }
+        .needs-config { animation: pulse-red 1.5s infinite; color: red; border: 1px solid red; }
+        #settingsPanel { display: none; background: #333; color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        #settingsPanel input { width: 100%; padding: 8px; margin-top: 5px; background: #555; color: white; border: 1px solid #777; box-sizing: border-box; }
+        #appVersionDisplay { margin-top: 10px; font-size: 0.9em; padding-top: 5px; border-top: 1px solid #555;}
+        #settingsPanel button { width: 100%; padding: 10px; margin-top: 10px; background: #665cac; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
+
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        label { display: block; font-weight: bold; margin-top: 15px; margin-bottom: 5px; color: #555; }
+        select, input[type="datetime-local"], textarea { width: 100%; padding: 12px; border: 1px solid #ddd; box-sizing: border-box; border-radius: 6px; font-size: 15px; }
+        
+        /* Общи Икони */
+        .fixed-icon-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 5px; padding: 10px 0; border-bottom: 1px dashed #ddd; }
+        .fixed-icon-btn { font-size: 20px; cursor: pointer; padding: 5px; border-radius: 4px; transition: transform 0.1s; }
+        .fixed-icon-btn:hover { transform: scale(1.2); }
+
+        /* Продуктов Бар */
+        #productBar { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; margin-top: 5px; background: #f9f9f9; padding: 10px; border-radius: 8px; border: 1px solid #eee; }
+        .product-btn { 
+            cursor: pointer; text-align: center; padding: 8px 5px; border-radius: 6px; 
+            background: white; border: 1px solid #ddd; user-select: none; font-size: 14px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            line-height: 1.2; transition: transform 0.1s;
+        }
+        .product-btn:hover { transform: scale(1.05); background: #eef; }
+        .product-icon { font-size: 20px; margin-bottom: 2px; }
+
+        .btn-group { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; } 
+        .btn-primary { flex: 1 1 100%; background: #000; color: white; border: none; font-size: 16px; font-weight: bold; padding: 15px; border-radius: 6px; cursor: pointer; order: 3;} 
+        .btn-instant { flex: 1 1 100%; background: #e74c3c; color: white; border: none; font-size: 16px; font-weight: bold; padding: 15px; border-radius: 6px; cursor: pointer; order: 2; margin-top: 10px;} 
+        .btn-magic { flex: 1 1 100%; background: #665cac; color: white; border: none; font-size: 16px; font-weight: bold; padding: 15px; border-radius: 6px; cursor: pointer; order: 1;} 
+        .btn-magic:hover { background: #50468c; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05); font-size: 14px; }
+        th, td { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
+        th { background: #e9ecef; }
+        .delete-btn { background: #e74c3c; color: white; border: none; padding: 5px 8px; border-radius: 4px; cursor: pointer; font-size: 14px; transition: background 0.3s; }
+        .delete-btn:hover { background: #c0392b; }
+        .status-WAIT { color: #f39c12; background: #fff3cd; padding: 3px 6px; border-radius: 4px; font-weight: bold; font-size: 0.9em; }
+        .status-DONE { color: #27ae60; background: #d4edda; padding: 3px 6px; border-radius: 4px; font-weight: bold; font-size: 0.9em; }
+        .status-ERR { color: #c0392b; background: #f8d7da; padding: 3px 6px; border-radius: 4px; font-weight: bold; font-size: 0.9em; }
+        .status-EXPIRED { color: #8e44ad; background: #e0bfe7; padding: 3px 6px; border-radius: 4px; font-weight: bold; font-size: 0.9em; }
+        .time-col { width: 130px; }
+        .refresh-text { font-size: 0.8em; color: #555; margin-left: 10px; }
+        
+        /* Управление на продукти */
+        .product-management { margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee; }
+        
+        .view-msg-btn { background: none; border: none; cursor: pointer; font-size: 16px; margin-left: 5px; padding: 0; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>📅 Viber Диспечер</h1>
+        <button id="settingsBtn" class="settings-btn" onclick="toggleSettings()" title="Настройки">⚙️</button>
+    </div>
+
+    <div id="settingsPanel">
+        <label style="color:white; margin-top:0;">🔗 Google Script URL:</label>
+        <input type="text" id="apiUrlInput" placeholder="Поставете URL-а от Deploy тук..."> 
+        <small style="color:#ccc;">Този адрес се запазва и като backup в Sheet-а.</small>
+        <button onclick="saveUrl()">ЗАПАЗИ ЛИНКА</button>
+        <div id="appVersionDisplay" style="margin-top: 10px; font-size: 0.9em;"></div> 
+    </div>
+
+    <div class="card">
+        <label>1. Избери Линия</label>
+        <select id="line">
+            <option value="Линия 1">Линия 1</option>
+            <option value="Линия 2">Линия 2</option>
+            <option value="VIP">VIP Група</option>
+        </select>
+
+        <label>2. Кога да се прати?</label>
+        <input type="datetime-local" id="scheduledTime">
+        
+        <label>3. Общи икони</label>
+        <div class="fixed-icon-bar">
+            <span class="fixed-icon-btn" onclick="addGeneralIcon('🇧🇬')">🇧🇬</span>
+            <span class="fixed-icon-btn" onclick="addGeneralIcon('🇬🇷')">🇬🇷</span>
+            <span class="fixed-icon-btn" onclick="addGeneralIcon('📞')">📞</span>
+            <span class="fixed-icon-btn" onclick="addGeneralIcon('🚚')">🚚</span>
+            <span class="fixed-icon-btn" onclick="addGeneralIcon('🔴')">🔴</span>
+            <span class="fixed-icon-btn" onclick="addGeneralIcon('✅')">✅</span>
+            <span class="fixed-icon-btn" onclick="addGeneralIcon('❄️')">❄️</span>
+            <span class="fixed-icon-btn" onclick="addGeneralIcon('🧊')">🧊</span>
+            <span class="fixed-icon-btn" onclick="addGeneralIcon('🌊')">🌊</span>
+            <span class="fixed-icon-btn" onclick="addGeneralIcon('🎣')">🎣</span>
+            <span class="fixed-icon-btn" onclick="addGeneralIcon('🐟')">🐟</span>
+            <span class="fixed-icon-btn" onclick="addGeneralIcon('🐠')">🐠</span>
+            <span class="fixed-icon-btn" onclick="addGeneralIcon('🦈')">🦈</span>
+            <span class="fixed-icon-btn" onclick="addGeneralIcon('🦞')">🦞</span>
+            <span class="fixed-icon-btn" onclick="addGeneralIcon('🦐')">🦐</span>
+            <span class="fixed-icon-btn" onclick="addGeneralIcon('🐙')">🐙</span>
+            <span class="fixed-icon-btn" onclick="addGeneralIcon('🐚')">🐚</span>
+            <span class="fixed-icon-btn" onclick="addGeneralIcon('🍣')">🍣</span>
+            <span class="fixed-icon-btn" onclick="addGeneralIcon('🍱')">🍱</span>
+            <span class="fixed-icon-btn" onclick="addGeneralIcon('🍤')">🍤</span>
+            <span class="fixed-icon-btn" onclick="addGeneralIcon('🔪')">🔪</span>
+        </div>
+
+        <label>4. Видове риба (Кликни за добавяне с цена)</label>
+        <div id="productBar">
+            <div style="text-align: center; color: #777;">Зареждане на продукти...</div>
+        </div>
+        
+        <label>5. Съобщение / Продукти</label>
+        <textarea id="message" rows="6" placeholder="Напиши продуктите тук..."></textarea>
+
+        <div class="btn-group">
+            <button class="btn-magic" onclick="formatWithAI()">✨ Оформи с AI</button> 
+            <button class="btn-instant" onclick="sendInstantly()">⚡ Изпрати сега</button>
+            <button class="btn-primary" onclick="addToQueue()">ДОБАВИ В ГРАФИКА 🚀</button>
+        </div>
+        
+        <div id="status" style="margin-top: 15px; text-align: center; font-weight: bold;"></div>
+        
+        </div>
+
+    <h2 style="margin-top: 40px; border-bottom: 2px solid #ccc;">📋 Текущ График</h2>
+
+    <div id="filterControls">
+        <div>
+            <label style="font-size: 0.9em; font-weight: bold;">Филтър по Линия:</label>
+            <select id="lineFilter" onchange="applyFilters()">
+                <option value="ALL">Всички Линии</option>
+                <option value="Линия 1">Линия 1</option>
+                <option value="Линия 2">Линия 2</option>
+                <option value="VIP">VIP Група</option>
+            </select>
+        </div>
+        <div>
+            <label style="font-size: 0.9em; font-weight: bold;">Филтър по Статус:</label>
+            <select id="statusFilter" onchange="applyFilters()">
+                <option value="ALL">Всички Статуси</option>
+                <option value="ЧАКА">ЧАКА</option>
+                <option value="ИЗПЪЛНЕНО">ИЗПЪЛНЕНО</option>
+                <option value="ГРЕШКА">ГРЕШКА</option>
+                <option value="ИЗТЕКЪЛ">ИЗТЕКЪЛ</option>
+            </select>
+        </div>
+        <button onclick="applyFilters()" style="background: #ccc; padding: 8px 12px; font-size: 14px; margin-top: 18px; height: 38px;">🔄 Обнови</button>
+        <span id="lastRefreshTime" class="refresh-text">Автоматично обновяване на всеки 60 секунди.</span>
+    </div>
+
+    <table>
+        <thead>
+            <tr><th class="time-col">Час (План)</th><th class="time-col">Изпратено в</th><th>Линия</th><th>Съобщение</th><th>Статус</th><th>Изтрий</th></tr>
+        </thead>
+        <tbody id="scheduleTable">
+            <tr><td colspan='6'>Зареждане...</td></tr>
+        </tbody>
+    </table>
+    <button id="loadMoreBtn" onclick="loadMore()" style="display:none; width: 100%; padding: 10px; background: #665cac; color: white; border: none; border-radius: 6px; margin-top: 15px; font-size: 16px; font-weight: bold;">Зареди още...</button>
+
+
+<script>
+    const APP_VERSION = "1.8.0 (Final Product UI)";
+    
+    let currentOffset = 0;
+    const FETCH_LIMIT = 20;
+    
+    const loadedMessages = {}; 
+
+    // --- УПРАВЛЕНИЕ НА ЛИНКА ---
+    function toggleSettings() {
+        const panel = document.getElementById('settingsPanel');
+        panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function checkUrlStatus() {
+        const url = localStorage.getItem('viberApiUrl');
+        const btn = document.getElementById('settingsBtn');
+        const panel = document.getElementById('settingsPanel');
+
+        if (!url) {
+            btn.classList.add('needs-config');
+            panel.style.display = 'block';
+            return null;
+        } else {
+            btn.classList.remove('needs-config');
+            panel.style.display = 'none';
+            return url;
+        }
+    }
+
+    async function saveUrl() {
+        const url = document.getElementById('apiUrlInput').value.trim();
+        if (!url) {
+            alert("Моля, поставете линка!");
+            return;
+        }
+
+        try {
+            localStorage.setItem('viberApiUrl', url);
+            
+            await fetch(url, {
+                method: 'POST',
+                body: JSON.stringify({ action: 'save_url', newUrl: url }) 
+            });
+
+            alert("✅ Линкът е запазен успешно в браузъра и като backup!");
+            checkUrlStatus();
+            applyFilters(); 
+            loadProducts(); 
+
+        } catch (e) {
+             alert("⚠️ Грешка при опит за запис в Sheet. Проверете дали линкът е верен и Deploy е OK.");
+             checkUrlStatus(); 
+        }
+    }
+    
+    // --- УПРАВЛЕНИЕ НА ПРОДУКТИ (ЛОГИКА) ---
+    function addGeneralIcon(icon) {
+        const textArea = document.getElementById('message');
+        textArea.value += icon;
+        textArea.focus();
+    }
+
+    async function loadProducts() {
+        const url = checkUrlStatus();
+        const productBar = document.getElementById('productBar');
+        productBar.innerHTML = '<div style="text-align: center; color: #777;">Зареждане...</div>';
+        if (!url) return; 
+
+        try {
+            const response = await fetch(url + '?action=get_products');
+            const products = await response.json();
+            
+            if (products.error || products.length === 0) {
+                productBar.innerHTML = '<div style="color: orange;">Няма налични продукти.</div>';
+                return;
+            }
+
+            productBar.innerHTML = ''; 
+            products.forEach(p => {
+                productBar.innerHTML += `
+                    <div class="product-btn" onclick="addProductToMessage('${p.name}', '${p.icon}')">
+                        <span class="product-icon">${p.icon}</span>
+                        <span>${p.name}</span>
+                    </div>
+                `;
+            });
+
+        } catch (e) {
+            productBar.innerHTML = `<div style="color: red;">Грешка при свързване: ${e.message}</div>`;
+        }
+    }
+
+    function addProductToMessage(productName, icon) {
+        const price = prompt(`Въведи цена за ${productName}:`);
+        
+        if (price === null || price.trim() === '') {
+            return; 
+        }
+
+        const formattedPrice = price.replace(/,/g, '.').trim();
+        const textArea = document.getElementById('message');
+        
+        textArea.value += `${icon} ${productName} - ${formattedPrice} лв.\n`;
+        textArea.focus();
+    }
+    
+    function loadMessageToEditor(rowIndex) {
+        const message = loadedMessages[rowIndex];
+        if (message) {
+            document.getElementById('message').value = message;
+            document.getElementById('status').innerText = `📝 Съобщение от ред ${rowIndex} е заредено за редакция/повторно изпращане.`;
+            document.getElementById('status').style.color = 'darkgreen';
+        } else {
+            document.getElementById('status').innerText = 'Грешка: Не може да се зареди съобщението.';
+            document.getElementById('status').style.color = 'red';
+        }
+    }
+    
+    function formatWithAI() {
+        const textArea = document.getElementById('message');
+        let text = textArea.value.trim();
+        if (!text) { alert("Първо напиши някакви продукти!"); return; }
+        
+        let items = text.split(/\n/); 
+        let formattedMsg = "👋 Здравейте! Днес сме ви приготвили пресни предложения:\n\n";
+        
+        const emojiMap = {
+            "хамсия": "🐟", "цаца": "🐟", "скумрия": "🐟", "лаврак": "🌊", "ципура": "🌊", 
+            "лефер": "🌊", "акула": "🦈", "веяно": "🦈", "скариди": "🦐", "рак": "🦞", 
+            "омар": "🦞", "миди": "🐚", "хайвер": "🔴", "сафрид": "🎣", "чернокоп": "🎣", 
+            "сьомга": "🍣", "филе": "🔪", "замразе": "❄️", "лед": "🧊", 
+            "българско": "🇧🇬", "гръцко": "🇬🇷"
+        };
+        
+        items.forEach(item => {
+            item = item.trim();
+            if (item.length > 0) {
+                let lowerItem = item.toLowerCase();
+                
+                const startsWithIcon = item.match(/^\p{Emoji_Presentation}/u) || item.match(/^\p{Emoji}/u);
+                
+                if (startsWithIcon) {
+                    formattedMsg += `${item}\n`;
+                    return; 
+                }
+
+                let icon = "🐟"; 
+                for (let key in emojiMap) {
+                    if (lowerItem.includes(key)) { 
+                        icon = emojiMap[key]; 
+                        break; 
+                    }
+                }
+                
+                item = item.charAt(0).toUpperCase() + item.slice(1);
+                formattedMsg += `${icon} ${item}\n`;
+            }
+        });
+        
+        formattedMsg += "\n📞 Поръчайте тук или на тел: 088884884 СЕГА!";
+        textArea.value = formattedMsg;
+    }
+
+    // --- ФУНКЦИИ ЗА ГРАФИК ---
+    function sendInstantly() {
+        const msg = document.getElementById('message').value;
+        if (!msg) { alert("Моля, напишете съобщение!"); return; }
+        if (!confirm("⚠️ ПОТВЪРЖДЕНИЕ: Сигурни ли сте, че искате да изпратите това съобщение МОМЕНТАЛНО? (Ще бъде насрочено за 2 минути напред и изпратено при следващия цикъл на таймера.)")) { return; }
+
+        const now = new Date();
+        const twoMinutesLater = new Date(now.getTime() + 120000); 
+        const timeString = twoMinutesLater.toISOString().substring(0, 16);
+        addToQueue(timeString);
+    }
+    
+    async function addToQueue(timeOverride) {
+        const url = checkUrlStatus();
+        if (!url) return; 
+
+        const line = document.getElementById('line').value;
+        const time = timeOverride || document.getElementById('scheduledTime').value; 
+        const msg = document.getElementById('message').value;
+        const statusDiv = document.getElementById('status');
+        const btnPrimary = document.querySelector('.btn-primary');
+        const btnInstant = document.querySelector('.btn-instant'); 
+
+        if(!msg || !time) { alert("Избери час и напиши съобщение!"); return; }
+
+        const scheduledDate = new Date(time);
+        const now = new Date();
+        let initialStatus = "ЧАКА";
+        
+        if (scheduledDate < now) {
+            initialStatus = "ИЗТЕКЪЛ"; 
+            if (!timeOverride && !confirm(`Внимание! Часът (${scheduledDate.toLocaleString('bg-BG')}) е в миналото. Съобщението ще бъде маркирано като 'ИЗТЕКЪЛ' и НЯМА да се изпрати. Искате ли да продължите?`)) { return; }
+        }
+
+        statusDiv.innerText = "⏳ Записване...";
+        statusDiv.style.color = "blue";
+        btnPrimary.disabled = true;
+        btnInstant.disabled = true; 
+        
+        try {
+            await fetch(url, {
+                method: 'POST',
+                body: JSON.stringify({ action: 'add', line: line, scheduledTime: time, message: msg, initialStatus: initialStatus }) 
+            });
+            
+            statusDiv.innerText = timeOverride ? `✅ УСПЕШНО НАСРОЧЕНО! За ${new Date(time).toLocaleTimeString('bg-BG')}` : `✅ Успешно добавено в графика! Статус: ${initialStatus}`;
+            statusDiv.style.color = "green";
+            document.getElementById('message').value = "";
+            if (timeOverride) { document.getElementById('scheduledTime').value = ''; }
+            applyFilters(); 
+
+        } catch (e) {
+            statusDiv.innerText = "❌ Грешка: " + e.message;
+            statusDiv.style.color = "red";
+        } finally {
+            btnPrimary.disabled = false;
+            btnInstant.disabled = false;
+        }
+    }
+
+
+    async function deleteScheduledMessage(rowIndex) {
+        if (!confirm("Сигурни ли сте, че искате да изтриете този ред?")) return;
+        const url = checkUrlStatus();
+        if (!url) return;
+
+        const statusDiv = document.getElementById('status');
+        statusDiv.innerText = "⏳ Изтриване на ред " + rowIndex + "...";
+        statusDiv.style.color = "orange";
+
+        try {
+            const response = await fetch(url, { method: 'POST', body: JSON.stringify({ action: 'delete', rowIndex: rowIndex }) });
+            const result = await response.json();
+            if (result.status === "success") {
+                statusDiv.innerText = "✅ Редът е успешно изтрит!";
+                statusDiv.style.color = "green";
+                applyFilters(); 
+            } else {
+                throw new Error(result.message);
+            }
+        } catch (e) {
+            statusDiv.innerText = "❌ Грешка при триене: " + e.message;
+            statusDiv.style.color = "red";
+        }
+    }
+    
+    function loadMore() { currentOffset += FETCH_LIMIT; loadSchedule(true); }
+    function applyFilters() { currentOffset = 0; const tbody = document.getElementById('scheduleTable'); if (tbody.children.length > 0) { tbody.innerHTML = "<tr><td colspan='6'>Обновяване...</td></tr>"; } document.getElementById('loadMoreBtn').style.display = 'none'; loadSchedule(false); }
+
+    async function loadSchedule(isAppend = false) {
+        const url = localStorage.getItem('viberApiUrl');
+        const tbody = document.getElementById('scheduleTable');
+        const loadMoreBtn = document.getElementById('loadMoreBtn');
+        const lastRefreshTime = document.getElementById('lastRefreshTime');
+        
+        if (!url) { tbody.innerHTML = "<tr><td colspan='6' style='text-align:center;'>Въведете линка в Настройките (⚙️)</td></tr>"; return; }
+
+        try {
+            const line = document.getElementById('lineFilter').value;
+            const status = document.getElementById('statusFilter').value;
+            
+            let queryString = `?action=get_schedule&line=${line}&status=${status}&limit=${FETCH_LIMIT}&offset=${currentOffset}`;
+            
+            const response = await fetch(url + queryString);
+            
+            const resultData = await response.json(); 
+            const data = resultData.rows;
+            const totalCount = resultData.totalCount;
+            
+            if (!isAppend) { 
+                tbody.innerHTML = ""; 
+                Object.keys(loadedMessages).forEach(key => delete loadedMessages[key]);
+            }
+            
+            if (data.length === 0 && !isAppend) { tbody.innerHTML = "<tr><td colspan='6' style='text-align:center;'>Няма записи, отговарящи на филтъра.</td></tr>"; return; }
+            if (data.length === 0 && isAppend) { loadMoreBtn.style.display = 'none'; return; }
+
+            
+            data.forEach(row => {
+                loadedMessages[row.rowNumber] = row.message;
+
+                let date = new Date(row.scheduled).toLocaleString('bg-BG');
+                let statusClass = row.status === "ЧАКА" ? "status-WAIT" : 
+                                  row.status === "ИЗПЪЛНЕНО" ? "status-DONE" : 
+                                  row.status === "ИЗТЕКЪЛ" ? "status-EXPIRED" : "status-ERR";
+                
+                const actualTime = row.status === "ИЗПЪЛНЕНО" && row.actualSendTime ? new Date(row.actualSendTime).toLocaleTimeString('bg-BG') : '-';
+
+                const loadMessageIcon = row.status === "ИЗПЪЛНЕНО" ? 
+                    `<button class="view-msg-btn" onclick="loadMessageToEditor(${row.rowNumber})" title="Зареди съобщението за редакция/повторно изпращане">📝</button>` : '';
+
+                const deleteButton = `<button class="delete-btn" onclick="deleteScheduledMessage(${row.rowNumber})">🗑️</button>`;
+                
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="time-col">${date}</td>
+                        <td class="time-col">${actualTime}</td>
+                        <td>${row.line}</td>
+                        <td>${row.message.substring(0, 30)}... ${loadMessageIcon}</td>
+                        <td><span class="${statusClass}">${row.status}</span></td>
+                        <td>${deleteButton}</td>
+                    </tr>
+                `;
+            });
+
+            if ((currentOffset + data.length) < totalCount) {
+                const remaining = totalCount - (currentOffset + data.length);
+                loadMoreBtn.innerText = `Зареди още (${remaining} оставащи)`;
+                loadMoreBtn.style.display = 'block';
+            } else {
+                loadMoreBtn.style.display = 'none';
+            }
+            
+            lastRefreshTime.innerText = `Обновено: ${new Date().toLocaleTimeString('bg-BG')}. Автоматично на всеки 60 секунди.`;
+
+
+        } catch (e) { tbody.innerHTML = "<tr><td colspan='6' style='text-align:center; color:red;'>Грешка при зареждане на графика. Проверете линка! Грешка: " + e.message + "</td></tr>"; }
+    }
+    
+    window.onload = function() {
+        document.getElementById('appVersionDisplay').innerHTML = `Версия на таблото: <b>${APP_VERSION}</b>`;
+        const savedUrl = localStorage.getItem('viberApiUrl');
+        if (savedUrl) { document.getElementById('apiUrlInput').value = savedUrl; }
+        
+        checkUrlStatus();
+        applyFilters(); 
+        loadProducts(); 
+
+        setInterval(applyFilters, 60000);
+    }
+</script>
+</body>
+</html>
