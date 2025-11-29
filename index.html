@@ -167,7 +167,10 @@
 
 
 <script>
-    const APP_VERSION = "1.8.0 (Final Product UI)";
+    const APP_VERSION = "1.8.0 (Final Product UI - Fixed URL)";
+    
+    // ВГРАДЕН URL АДРЕС ПО ПОДРАЗБИРАНЕ
+    const DEFAULT_API_URL = "https://script.google.com/macros/s/AKfycbwg8A6NdwlmOcH8A0bD6rjAM2FnY0dD66RDPW94UhyJiVSVKw6yHt4gsZ4v6-nXs1L/exec"; 
     
     let currentOffset = 0;
     const FETCH_LIMIT = 20;
@@ -196,10 +199,11 @@
         }
     }
 
-    async function saveUrl() {
+    // Модифицирана функция saveUrl за поддръжка на автоматично запазване без alert
+    async function saveUrl(isSilent = false) { 
         const url = document.getElementById('apiUrlInput').value.trim();
         if (!url) {
-            alert("Моля, поставете линка!");
+            if (!isSilent) alert("Моля, поставете линка!");
             return;
         }
 
@@ -211,13 +215,13 @@
                 body: JSON.stringify({ action: 'save_url', newUrl: url }) 
             });
 
-            alert("✅ Линкът е запазен успешно в браузъра и като backup!");
+            if (!isSilent) alert("✅ Линкът е запазен успешно в браузъра и като backup!");
             checkUrlStatus();
             applyFilters(); 
             loadProducts(); 
 
         } catch (e) {
-             alert("⚠️ Грешка при опит за запис в Sheet. Проверете дали линкът е верен и Deploy е OK.");
+             if (!isSilent) alert("⚠️ Грешка при опит за запис в Sheet. Проверете дали линкът е верен и Deploy е OK.");
              checkUrlStatus(); 
         }
     }
@@ -491,8 +495,18 @@
     
     window.onload = function() {
         document.getElementById('appVersionDisplay').innerHTML = `Версия на таблото: <b>${APP_VERSION}</b>`;
+        
         const savedUrl = localStorage.getItem('viberApiUrl');
-        if (savedUrl) { document.getElementById('apiUrlInput').value = savedUrl; }
+        
+        // Ако няма запазен URL, използваме вградения и го запазваме
+        if (savedUrl) { 
+            document.getElementById('apiUrlInput').value = savedUrl; 
+        } else {
+            document.getElementById('apiUrlInput').value = DEFAULT_API_URL;
+            localStorage.setItem('viberApiUrl', DEFAULT_API_URL);
+            // Извикваме saveUrl с isSilent=true, за да го запишем в Sheet-а без да показва alert
+            saveUrl(true); 
+        }
         
         checkUrlStatus();
         applyFilters(); 
